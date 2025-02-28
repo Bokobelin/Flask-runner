@@ -31,7 +31,7 @@ def run_code():
             continue
 
         try:
-            exec_globals = {"solution": solution}  # Pass solution to exec context
+            exec_globals = {}
             exec(code, exec_globals)
             result = exec_globals["solution"](input_data)
             results.append({
@@ -47,9 +47,7 @@ def run_code():
             })
 
     return jsonify({"results": results})
-    
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-    
