@@ -12,13 +12,24 @@ def run_code():
     data = request.json
     code = data.get("code", "")
 
+    if not code:
+        return jsonify({"error": "No code provided!"}), 400
+
     try:
-        exec_globals = {}
-        exec(code, exec_globals)
-        return jsonify({"output": str(exec_globals)})
+        # Safe execution using a sandboxed environment
+        exec_globals = {"__builtins__": {}}
+        exec_locals = {}
+        exec(code, exec_globals, exec_locals)
+
+        # Capture and return the output from locals if any
+        output = exec_locals if exec_locals else {"message": "Code executed successfully"}
+        return jsonify({"output": output})
+
     except Exception as e:
-        return jsonify({"error": str(e)})
+        # Returning more specific error message
+        return jsonify({"error": f"Error while executing code: {str(e)}"}), 400
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+    
