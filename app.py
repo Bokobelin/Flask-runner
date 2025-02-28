@@ -9,25 +9,45 @@ def home():
 
 @app.route('/run', methods=['POST'])
 def run_code():
-    data = request.json
+    data = request.get_json()  # Ensure you're using get_json() to parse the request
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400  # Return 400 if JSON is invalid
+
     code = data.get("code", "")
+    test_cases = data.get("testCases", [])
 
     if not code:
-        return jsonify({"error": "No code provided!"}), 400
+        return jsonify({"error": "Code is missing"}), 400  # Ensure code is present
+    if not test_cases:
+        return jsonify({"error": "Test cases are missing"}), 400  # Ensure test cases are present
 
-    try:
-        # Safe execution using a sandboxed environment
-        exec_globals = {"__builtins__": {}}
-        exec_locals = {}
-        exec(code, exec_globals, exec_locals)
+    # Execute the code for each test case
+    results = []
+    for test_case in test_cases:
+        input_data = test_case.get("input")
+        expected_output = test_case.get("expectedOutput")
+        if input_data is None or expected_output is None:
+            results.append({"error": "Missing input or expectedOutput in test case"})
+            continue
 
-        # Capture and return the output from locals if any
-        output = exec_locals if exec_locals else {"message": "Code executed successfully"}
-        return jsonify({"output": output})
+        try:
+            exec_globals = {"solution": solution}  # Pass solution to exec context
+            exec(code, exec_globals)
+            result = exec_globals["solution"](input_data)
+            results.append({
+                "input": input_data,
+                "expectedOutput": expected_output,
+                "result": str(result)
+            })
+        except Exception as e:
+            results.append({
+                "input": input_data,
+                "expectedOutput": expected_output,
+                "result": f"Error: {str(e)}"
+            })
 
-    except Exception as e:
-        # Returning more specific error message
-        return jsonify({"error": f"Error while executing code: {str(e)}"}), 400
+    return jsonify({"results": results})
+    
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
