@@ -3,7 +3,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app, resources={r"/*": {"origins": "*"}})  # Allow all origins
 
 @app.route('/')
 def home():
@@ -11,19 +11,18 @@ def home():
 
 @app.route('/run', methods=['POST'])
 def run_code():
-    data = request.get_json()  # Ensure you're using get_json() to parse the request
+    data = request.get_json()
     if not data:
-        return jsonify({"error": "Invalid JSON"}), 400  # Return 400 if JSON is invalid
+        return jsonify({"error": "Invalid JSON"}), 400
 
     code = data.get("code", "")
     test_cases = data.get("testCases", [])
 
     if not code:
-        return jsonify({"error": "Code is missing"}), 400  # Ensure code is present
+        return jsonify({"error": "Code is missing"}), 400
     if not test_cases:
-        return jsonify({"error": "Test cases are missing"}), 400  # Ensure test cases are present
+        return jsonify({"error": "Test cases are missing"}), 400
 
-    # Execute the code for each test case
     results = []
     for test_case in test_cases:
         input_data = test_case.get("input")
@@ -48,7 +47,12 @@ def run_code():
                 "result": f"Error: {str(e)}"
             })
 
-    return jsonify({"results": results})
+    response = jsonify({"results": results})
+    response.headers.add("Access-Control-Allow-Origin", "*")  # Explicitly allow requests
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    
+    return response
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
